@@ -1,13 +1,30 @@
 # File map
 
 - `Jm3a Hunt PROMPT.txt` — user's master product prompt (vision, full requirements)
-- `CLAUDE.md` — agent rules and commands
+- `CLAUDE.md` — agent rules and commands; `AGENTS.md` — Next.js agent note (re-created by `next dev`)
 - `docs/SPEC.md` — technical contracts: data model, API, WS protocol, engine rules, design system
 - `docs/PLAN.md` — task list and status
-- `server/` — Node process (planned): http routes, ws gateway, match engine, db, auth, security, sim
-- `src/shared/` — pure game domain shared by client and server (planned)
-- `src/app/` — Next pages (planned)
-- `src/components/` — UI components (planned)
-- `src/lib/` — client libs: api, ws, gps, time sync (planned)
-- `src/i18n/` — UI strings (planned)
+- `package.json` — scripts: dev / build / start / test / typecheck / lint / db:generate / db:migrate
+- `next.config.ts`, `tsconfig.json` (`@/*` → `src/*`), `eslint.config.mjs`, `vitest.config.mts`, `components.json` (shadcn), `drizzle.config.ts`
+- `server/index.ts` — entry: starts the app server (Next + API + WS) on `PORT`
+- `server/app.ts` — `createAppServer({ withNext })`: one HTTP server; `/api/*` → Hono, `/ws` upgrade → ws, other upgrades (HMR) → Next
+- `server/config.ts` — env parsing (zod); dev generates missing secrets, production throws
+- `server/http/index.ts` — Hono API (`createApi`), currently `GET /api/health`
+- `server/ws/index.ts` — WebSocket gateway (`createWsGateway`), currently a welcome stub
+- `server/db/schema.ts` — Drizzle schema (empty until task 2)
+- `src/app/` — Next pages: `layout.tsx` (fonts, `lang`/`dir`), `page.tsx` (placeholder), `globals.css` (Tailwind v4 + shadcn tokens)
+- `src/components/ui/` — shadcn components; `src/lib/utils.ts` — `cn()`
+- `src/i18n/en.ts` — all UI strings; `src/i18n/index.ts` — `t()`, `tm()`, `formatDuration`, `locale`, `dir`
+- `src/shared/` — pure game domain (no IO); barrel `index.ts`
+  - `types.ts` — states, statuses, fixes, clock, events, `MatchView`
+  - `schemas/` — zod: `settings.ts`, `zones.ts`, `ws.ts` (client/server messages, 8 KB cap), `api.ts` (REST bodies)
+  - `defaults/` — `DEFAULT_SETTINGS`, `deepMerge`, `withDefaults`; `presets.ts` — 4 built-in presets
+  - `settings/` — `meta.ts` (field registry for the settings UI), `validate.ts`, `summary.ts`, `hash.ts`
+  - `geo/` — distance, destination, containment, signed distance, polygon validity (turf)
+  - `zones/` — `validate.ts` (+ `ZONE_PRIORITY`), `timeline.ts` (`zoneStateAt`), `build.ts` (shrink templates, zonesAtPoint)
+  - `location/` — freshness, presence, jump filter, boundary classifier, penalty pipeline
+  - `visibility/` — approximation grid, ping snapshots, `buildView` (only producer of client coordinates)
+  - `match/` — `stateMachine.ts`, `clock.ts` (deadlines, pause shift, pings), `roles.ts` (assignment, reveal script, rng)
+  - `capture/` — capture/rescue rules, outcomes, proximity hint, scores, victory
+  - `test-helpers.ts` — fixtures for unit tests (not in the barrel)
 - `tests/` — integration and e2e tests (planned)
