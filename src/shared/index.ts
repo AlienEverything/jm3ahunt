@@ -4,6 +4,7 @@ export * from "./schemas/zones";
 export * from "./schemas/settings";
 export * from "./schemas/ws";
 export * from "./schemas/api";
+export * from "./schemas/responses";
 export * from "./defaults";
 export * from "./presets";
 export * from "./settings/meta";
