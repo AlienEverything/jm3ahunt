@@ -6,14 +6,28 @@
 - `docs/PLAN.md` — task list and status
 - `package.json` — scripts: dev / build / start / test / typecheck / lint / db:generate / db:migrate
 - `next.config.ts`, `tsconfig.json` (`@/*` → `src/*`), `eslint.config.mjs`, `vitest.config.mts`, `components.json` (shadcn), `drizzle.config.ts`
-- `server/index.ts` — entry: starts the app server (Next + API + WS) on `PORT`
-- `server/app.ts` — `createAppServer({ withNext })`: one HTTP server; `/api/*` → Hono, `/ws` upgrade → ws, other upgrades (HMR) → Next
+- `server/index.ts` — entry: starts the app server (Next + API + WS) on `PORT`; SIGTERM/SIGINT snapshot matches, then exit
+- `server/app.ts` — `createAppServer({ withNext, config?, now?, autoTick? })`: one HTTP server; `/api/*` → Hono, `/ws` upgrade → gateway, other upgrades (HMR) → Next; binds 0.0.0.0 in production
 - `server/config.ts` — env parsing (zod); dev generates missing secrets, production throws
-- `server/http/index.ts` — Hono API (`createApi`), currently `GET /api/health`
-- `server/ws/index.ts` — WebSocket gateway (`createWsGateway`), currently a welcome stub
-- `server/db/schema.ts` — Drizzle schema (empty until task 2)
-- `src/app/` — Next pages: `layout.tsx` (fonts, `lang`/`dir`), `page.tsx` (placeholder), `globals.css` (Tailwind v4 + shadcn tokens)
-- `src/components/ui/` — shadcn components; `src/lib/utils.ts` — `cn()`
+- `server/context.ts` — `createContext`: opens + migrates the DB, rate limiters, engine registry (restores live matches); injectable `now()`
+- `server/db/schema.ts` — Drizzle schema (SPEC §4; never coordinates); `client.ts` — `openDb` (libSQL file or Turso) + `migrateDb`; `migrate.ts` — `npm run db:migrate`
+- `drizzle/` — generated SQL migrations (`npm run db:generate`); also applied automatically on boot
+- `server/auth/index.ts` — session tokens (sha256 in DB, cookie `jh_session`), bcrypt passwords, `userForToken`
+- `server/security/` — `rateLimit.ts` (token buckets, SPEC §5 limits), `origin.ts` (Origin check, client IP, cookie parse), `tagToken.ts` (HMAC QR token + 6-digit code, 30 s windows)
+- `server/http/` — Hono API (SPEC §6): `index.ts` (middleware: origin, session, rate limit, errors), `auth.ts` (auth + /me), `groups.ts` (groups, members, invites, join, presets), `matches.ts` (create, history, info, settings/zones PUT, results), `dto.ts` (response mappers + authz helpers), `util.ts`
+- `server/ws/index.ts` — WebSocket gateway (SPEC §7): cookie + Origin on upgrade, hello re-checks membership, ordered per-socket handling, hb, idle sockets closed
+- `server/engine/` — `runtime.ts` (`MatchRuntime`: lobby, consent, preflight, timers, pause, location pipeline, pings, captures, jail/rescue, victory, events, views, snapshots, dev bots), `registry.ts` (runtimes, 1 s tick, restore on boot, shutdown), `store.ts` (DB writes, no coordinates)
+- `src/app/` — routes. `layout.tsx` (fonts, `lang`/`dir`, viewport/theme-color, no-flash theme script, Toaster), `globals.css` (design tokens light/dark: paper/ink, Signal Orange primary/seeker, Hider Teal, success/warning/danger; mobile baseline), `page.tsx` landing, `not-found.tsx`, `error.tsx`. Every other `page.tsx` is a thin server wrapper: metadata title + `<Suspense>` around a client screen from `src/components/screens/`: `start`, `signin`, `account`, `dashboard`, `join`, `invite/[token]`, `groups/new`, `groups/[id]`, `groups/[id]/matches/new` (setup, `?preset=` / `?zones=`), `matches/[id]` (lobby → live slot → results by state), `matches/[id]/edit`
+- `src/components/ui/` — shadcn (base-nova, Base UI): button/input resized for touch (44 px), dialog, drawer, alert-dialog, dropdown-menu, switch, select, badge, card, field, label, separator, skeleton, toggle(-group), sonner (themed via `lib/theme`)
+- `src/components/screens/` — one client component per route (data via `useApiQuery`, auth redirect on 401)
+- `src/components/layout/` — `TopBar` (back + title + theme toggle), `Page` (content column, `wide` for two-column), `StickyFooter` (one primary action, safe-area), `ThemeToggle`, `ScreenFallback`
+- `src/components/common/` — `Sheet` (bottom drawer < 640 px, dialog above), `ConfirmDialog`, `States` (Loading/Error/Empty/Section), `UserAvatar`, `AvatarPicker` (emoji/colour/group icons), `ProfileFields`, `JoinCodeForm`, `CopyButton`, `QrCode` (`qrcode` lib)
+- `src/components/group/` — `MembersList` (promote/demote/remove), `InvitePanel` (QR, code, link, share, regenerate), `PresetSections` (Quick start 2×2 + saved presets rename/duplicate/delete), `GroupForm`, `GroupSettingsSheet`
+- `src/components/settings/` — `SettingsEditor` (generic renderer over `SETTINGS_FIELDS`/`SETTINGS_GROUPS`, Advanced per group, dependsOn, inline issues), `SettingControl`, `RulesSummary` (+ `shortRules`), `MatchSetup` (create/edit, presets, reset, save preset, play-area step, sticky summary)
+- `src/components/lobby/` — `Lobby` (players, host controls, start blockers, ready), `ConsentSheet`, `GpsCheck` (`useGpsCheck` + card with iOS/Android fixes)
+- `src/components/match/` — `PlayerRow`/`RoleChip`/`PresenceDot`, `MatchBits` (StateBadge, CurrentMatchCard, ResultList), `Results`, `LiveMatchSlot` (placeholder; task 4 replaces, keep props)
+- `src/components/map/` — `MapPreview`, `ZoneEditorSlot` (placeholders; task 4 replaces, keep props)
+- `src/lib/` — `api.ts` (typed fetch, `ApiError`, 401 → `/start?next=`, `useApiQuery`, `safeNext`), `ws.ts` (`MatchSocket` reconnecting client + `useMatch`), `time-sync.ts` (server offset, `serverNow`), `hooks.ts` (`useServerNow`, `useMediaQuery`, `formatJoinCode`, `formatClock`), `theme.ts` + `theme-script.ts` (system/light/dark, localStorage), `utils.ts` (`cn`)
 - `src/i18n/en.ts` — all UI strings; `src/i18n/index.ts` — `t()`, `tm()`, `formatDuration`, `locale`, `dir`
 - `src/shared/` — pure game domain (no IO); barrel `index.ts`
   - `types.ts` — states, statuses, fixes, clock, events, `MatchView`
@@ -27,4 +41,5 @@
   - `match/` — `stateMachine.ts`, `clock.ts` (deadlines, pause shift, pings), `roles.ts` (assignment, reveal script, rng)
   - `capture/` — capture/rescue rules, outcomes, proximity hint, scores, victory
   - `test-helpers.ts` — fixtures for unit tests (not in the barrel)
-- `tests/` — integration and e2e tests (planned)
+- `tests/integration/` — in-process server + real WS clients, injected clock: `helpers.ts` (env, cookie-jar `Api`, frame-recording `Sock`, lobby setup), `capture.test.ts` (scenario 1, QR/code, opIds, jail/rescue), `privacy.test.ts` (scenarios 2, 5, 8), `timeline.test.ts` (scenarios 3, 4, 7, pause, emergency), `api.test.ts` (auth, origin, groups, presets, authz, settings reset), `recovery.test.ts` (restart recovery, sim bots)
+- `tests/e2e/` — Playwright (planned)
