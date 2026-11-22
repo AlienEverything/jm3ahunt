@@ -1,0 +1,1509 @@
+# MASTER DEVELOPMENT PROMPT — JM3A HUNT
+
+## 1. YOUR ROLE AND PRIMARY OBJECTIVE
+
+You are a senior full-stack engineer, software architect, real-time multiplayer systems developer, and UI/UX designer.
+
+Your task is to design and develop **Jm3a Hunt**, a polished, functional, location-based multiplayer game website that lets groups of friends organize and play real-world games using their phones' GPS.
+
+Think of a combination of:
+- Real-world Manhunt / Hide & Seek
+- Capture the Flag
+- Zone Control
+- Battle Royale-style shrinking play areas
+- Customizable game lobbies
+- An advanced real-world map and zone editor
+
+The result must be a **real, functional web application**, not merely a UI mockup or a collection of disconnected features.
+
+### Development philosophy
+
+This prompt describes my vision for Jm3a Hunt, but it is **not a rigid set of rules that you must follow without judgment**.
+
+You have the freedom to make independent technical and creative decisions when appropriate.
+
+You **may, but are not required to**:
+
+- Suggest additional features or improvements.
+- Identify and correct mistakes in my ideas or specifications.
+- Recommend alternative architectures, libraries, or technologies.
+- Research existing applications, documentation, or solutions online.
+- Ask me clarifying questions.
+- Suggest more efficient implementations.
+- Propose changes to the design or user experience.
+- Point out technical limitations or potential problems.
+- Use any available tools, skills, agents, integrations, or external resources when useful and authorized.
+- Make reasonable assumptions about unspecified implementation details.
+
+**These are permissions, not tasks or mandatory steps.**
+
+You do not need to perform these actions simply because I have listed them.
+
+For example, if my requested design is already reasonable, you do not need to invent improvements just to fulfill a suggestion requirement.
+
+If you notice a meaningful problem, you are welcome to point it out. If you have a useful idea, you are welcome to suggest it. If you need additional information, you may ask.
+
+Otherwise, you can simply proceed with development.
+
+Do not add unnecessary discussions, research phases, questions, or recommendations.
+
+Your primary objective remains building a functional, high-quality Jm3a Hunt application.
+
+---
+
+# 2. PRODUCT IDENTITY
+
+**Product name:** Jm3a Hunt
+
+**Product type:** Location-based real-world multiplayer gaming platform.
+
+**Target users:** Private groups of friends, generally 2–15 players per match.
+
+**Core principles:**
+1. Real-world gameplay first.
+2. Extremely customizable match settings.
+3. Simple enough for anyone to understand.
+4. Beautiful, minimal, modern interface.
+5. Reliable multiplayer synchronization.
+6. Accurate, permission-based GPS functionality.
+7. Privacy and fair competition.
+8. Fast setup: create a lobby, invite friends, configure settings, and start playing.
+
+Jm3a Hunt should feel like a real, premium product.
+
+I do not want a complicated, bloated interface.
+
+The complexity should be available when needed, without overwhelming casual players.
+
+For example, a host should be able to start a basic Hide & Seek match using a preset in less than a minute, but should also be able to open advanced settings and customize nearly every gameplay mechanic.
+
+---
+
+# 3. PLATFORM AND TECHNICAL ARCHITECTURE
+
+## Primary platform
+
+Build Jm3a Hunt as a **mobile-first website with Progressive Web App support**.
+
+Requirements:
+- Works on iPhone Safari.
+- Works on Android Chrome and Samsung Internet where supported.
+- Works on desktop for lobby management, spectating when permitted, and configuration.
+- Responsive on different screen sizes.
+- Installable onto supported devices' home screens.
+- No Apple Developer account required.
+- No Android APK or iOS IPA required.
+- No app store distribution required.
+- HTTPS in production.
+- Proper web manifest, app icons, splash behavior where supported, and service worker.
+- Graceful handling of different browser capabilities.
+
+### Suggested technology stack
+
+Evaluate this stack first:
+
+**Frontend**
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Lucide icons
+- Framer Motion / Motion for restrained animations
+
+**Backend**
+- Supabase
+- PostgreSQL
+- PostGIS for geographical operations
+- Supabase Auth
+- Supabase Realtime
+- Server-side functions or dedicated backend services for authoritative match logic
+
+**Maps**
+- MapLibre GL JS
+- A licensed, suitable map tile provider
+- Street maps
+- Satellite imagery
+- Hybrid map style if available
+- GeoJSON-based zones and overlays
+
+**Deployment**
+- Vercel or an appropriate alternative
+- Supabase-hosted backend or equivalent
+
+Use another stack if it offers meaningful advantages.
+
+Favor manageable costs, simple deployment, maintainability, reliability, and fast performance.
+
+### Critical browser limitation
+
+Do not falsely promise continuous background GPS tracking.
+
+iOS and other mobile browsers can suspend web pages when users lock their screens or switch applications.
+
+Build the application to handle this explicitly.
+
+Requirements:
+- Foreground GPS tracking using supported browser APIs.
+- Reconnection when the user returns.
+- A clear location freshness indicator.
+- Stale-location detection.
+- Warning when tracking has stopped.
+- Accurate server-side match timers that continue even if a player disconnects.
+- Reasonable battery usage.
+- Optional PWA notifications where supported.
+- No fake background tracking workarounds.
+- Never treat a push notification as a substitute for GPS tracking.
+
+Explain these limitations clearly to the user during match setup.
+
+Design a practical system that works despite them.
+
+---
+
+# 4. ACCOUNTS, GROUPS, AND LOBBIES
+
+This is one of the most important systems.
+
+I want a group-based experience rather than creating a completely disconnected game every time.
+
+## Accounts
+
+Implement an easy onboarding system.
+
+Possible features:
+- Username / display name.
+- Profile picture or avatar.
+- Account creation.
+- Convenient guest participation, if securely feasible.
+- Ability to save persistent groups.
+- Basic player statistics.
+- Match history without retaining sensitive location routes.
+
+Avoid forcing users to navigate a complicated registration process just to join a friend's game.
+
+## Persistent groups
+
+A player can create a group.
+
+Example:
+
+**Group: Weekend Hunters**
+
+Members:
+- Player A — Owner
+- Player B — Member
+- Player C — Member
+- Player D — Member
+
+Within a group, members should be able to play multiple matches over time.
+
+A group should support:
+- A unique group name.
+- Group icon or avatar.
+- Group owner.
+- Optional administrators.
+- Member management.
+- Private invitation links.
+- Join codes.
+- Optional group password.
+- Configurable maximum members.
+- Group settings.
+- Match history.
+- Saved game presets.
+- Future scheduled matches, if practical.
+
+A group can contain multiple historical matches, but normally only one active match at a time.
+
+## Lobby system
+
+A group owner or authorized administrator can create a match lobby.
+
+Flow:
+
+1. Create or open a group.
+2. Select a game mode.
+3. Configure match settings.
+4. Choose the play area.
+5. Invite or select participants.
+6. Assign teams or roles.
+7. Wait for players to become ready.
+8. Start the game.
+
+The lobby should display:
+- Player names.
+- Online/offline status.
+- Ready status.
+- Team assignments.
+- Selected game mode.
+- Match configuration summary.
+- GPS permission status.
+- Last location update status when relevant.
+- Start button for the authorized host.
+
+### Host permissions and fairness
+
+The host has administrative controls but does not receive unfair gameplay advantages.
+
+For example, if a host is also a seeker, the host must not see hidden hiders' exact locations unless ordinary seekers are allowed to see them.
+
+This restriction must be enforced server-side.
+
+The host can configure the game before it starts.
+
+During active gameplay, ordinary rule changes should be locked or require a visible, paused, consensual rules-update process.
+
+Emergency pause and end-game controls can remain accessible.
+
+Do not implement a secret host-only tracking map.
+
+---
+
+# 5. PRIMARY GAME MODES
+
+The platform should support multiple modes using a shared, configurable game engine.
+
+Three modes are the highest priority.
+
+## Mode A: Hide & Seek / Manhunt
+
+This is the primary game mode.
+
+Players are divided into:
+- Seekers
+- Hiders
+
+The host can configure the number of seekers and hiders.
+
+### Gameplay
+
+Possible match flow:
+
+1. All players join.
+2. Host assigns roles.
+3. Hiders receive a head start.
+4. Seekers wait for the configured countdown.
+5. The game begins.
+6. Seekers locate and tag hiders within the approved play area.
+7. Captured players receive the configured outcome.
+8. The match ends when a configured victory condition is met.
+
+### Configurable settings
+
+**Teams and roles**
+- Number of seekers.
+- Number of hiders.
+- Automatic random assignment.
+- Manual assignment.
+- Team balancing.
+- Allow switching roles before the match.
+
+**Timers**
+- Head-start duration.
+- Match duration.
+- Optional overtime.
+- Countdown before starting.
+
+**Location visibility**
+- No opponent location visibility.
+- Approximate location pings.
+- Exact periodic location pings, only with explicit participant consent.
+- Team-specific visibility.
+- Configurable ping interval.
+- Optional location reveal during the final minutes.
+
+**Capture outcomes**
+- Captured hider becomes a seeker.
+- Captured hider is eliminated.
+- Captured hider is sent to jail.
+- Captured hider is temporarily frozen.
+- Captured hider can respawn if enabled.
+
+**Jail**
+- Enable/disable jail.
+- Jail location.
+- Maximum jail time.
+- Rescue enabled/disabled.
+- Rescue interaction type.
+- Number of allowed rescues.
+- Automatic release if configured.
+
+**Victory conditions**
+- Seekers capture every hider.
+- Hiders survive until the timer expires.
+- Points-based victory.
+- Custom configurable conditions.
+
+**Zone mechanics**
+- Fixed play boundary.
+- Shrinking play boundary.
+- Moving play boundary.
+- Safe zones.
+- Restricted zones.
+- Optional final-zone phase.
+
+These mechanics should work together wherever logically compatible.
+
+## Mode B: Capture the Flag
+
+Create a fully functional real-world Capture the Flag mode.
+
+Features:
+- Two or more configurable teams.
+- Team colors.
+- Flag placement on the map.
+- Team base zones.
+- Flag pickup.
+- Flag carrier status.
+- Flag return.
+- Scoring.
+- Optional respawning.
+- Optional defender/attacker roles.
+- Win by score or time.
+
+Flags can be represented using approved physical checkpoints, QR codes, or confirmed in-app interactions.
+
+Do not rely solely on GPS proximity to prove physical possession.
+
+Configurable options:
+- Number of flags.
+- Number of teams.
+- Capture requirements.
+- Whether flag carriers are visible on the map.
+- Flag return timers.
+- Respawn behavior.
+- Points per capture.
+- Match duration.
+- Zone movement/shrinking.
+- Team-owned safe zones.
+
+## Mode C: Zone Control / Battle Royale-style Tag
+
+This is a real-world, nonviolent zone-control or last-player-standing tag game.
+
+It should not require physical combat.
+
+### Zone Control
+
+Teams compete to control designated locations.
+
+Features:
+- Host places control points.
+- Teams enter designated areas.
+- Points accumulate over time.
+- Contested points.
+- Capture progress.
+- Match timer.
+- Winning score.
+- Optional rotating objectives.
+
+### Shrinking-Zone Survival
+
+Players remain within an approved play area that shrinks over time.
+
+Features:
+- Multiple shrinking phases.
+- Warning countdowns.
+- Updated zone visualization.
+- Optional moving final zone.
+- GPS-aware boundary detection.
+- Host-configurable elimination rules.
+- Final survivor or final team wins.
+
+Avoid instant penalties caused by inaccurate GPS readings.
+
+### Other modes
+
+Design the game engine so these can be added:
+
+- Infection / Zombie Tag.
+- Team Manhunt.
+- Free-for-All Tag.
+- Jailbreak.
+- Checkpoint Race on a preapproved safe route.
+- Territory Control.
+- Custom modes.
+
+Do not make secondary modes more important than the first three.
+
+---
+
+# 6. ADVANCED ZONE EDITOR
+
+This is among the most important features in Jm3a Hunt.
+
+I want the host to manipulate the gameplay area directly through an interactive map.
+
+Think of a professional geographic zone editor made understandable to ordinary users.
+
+## Supported zone shapes
+
+At minimum:
+- Circles.
+- Polygons.
+- Rectangles if useful.
+- Multiple separate zones.
+
+Optional future shapes:
+- Corridors.
+- Connected zones.
+- Complex polygon boundaries.
+
+## Zone types
+
+Implement configurable types:
+
+1. **Main play area:** Where the match is allowed.
+2. **Safe zone:** Special behavior defined by the game mode.
+3. **Restricted zone:** An area players must not enter.
+4. **Jail zone:** Location for captured players.
+5. **Rescue zone:** Checkpoint used for rescue mechanics.
+6. **Capture zone:** Area used for objectives.
+7. **Flag zone:** Flag location or base area.
+8. **Control point:** Area that teams can control.
+9. **Spawn zone:** Where players begin.
+10. **Objective zone:** Location-based match task.
+
+Not every zone type is relevant to every mode.
+
+Let the host enable, disable, and configure relevant types.
+
+## Zone editor interactions
+
+The host should be able to:
+- Tap a location to place a zone.
+- Draw polygon boundaries.
+- Drag and resize circles.
+- Edit polygon vertices.
+- Move zone centers.
+- Set exact radius values in meters.
+- Name zones.
+- Choose colors.
+- Set opacity.
+- Delete zones.
+- Duplicate zones.
+- Undo changes.
+- Save zone presets.
+- Preview the complete match area.
+
+Include clear visual feedback.
+
+Use consistent colors and patterns. Do not rely on color alone.
+
+## Dynamic zones
+
+Support three major behaviors.
+
+### A. Static zones
+
+Never move or shrink.
+
+### B. Shrinking zones
+
+Host configures multiple phases.
+
+Example:
+
+| Phase | Duration | Radius |
+|---|---|---|
+| Initial | 10 minutes | 1,000 m |
+| Phase 1 | 5 minutes | 750 m |
+| Phase 2 | 5 minutes | 400 m |
+| Final | 3 minutes | 150 m |
+
+These are illustrative values, not mandatory defaults.
+
+Allow:
+- Custom phase count.
+- Start delay.
+- Duration per phase.
+- Target circle radius.
+- Target center.
+- Warning countdown.
+- Optional transition animation.
+- Optional pauses between phases.
+- Final zone behavior.
+
+Support polygon phases through explicitly validated successive shapes if feasible. Never use an unreliable polygon-shrinking algorithm that can generate invalid boundaries.
+
+### C. Moving zones
+
+Allow the host to create a sequence of safe, approved zone positions.
+
+For example:
+
+Zone Position A → Zone Position B → Zone Position C.
+
+The host determines:
+- Waypoints.
+- Transition schedule.
+- Warning time.
+- Zone radius at each waypoint.
+- Whether movement and shrinking happen together.
+
+All positions must remain inside the original approved safe play area.
+
+Do not automatically generate movement routes through roads, inaccessible property, or hazardous areas.
+
+## Zone behavior and priority
+
+Define what happens when zones overlap.
+
+For example:
+- Restricted areas always remain restricted.
+- A safe zone should not override an unsafe or prohibited location.
+- Jail boundaries may use independent rules.
+- Objective zones can overlap the play area when allowed.
+
+Document these rules and validate conflicts in the editor.
+
+## GPS tolerance
+
+GPS is not perfectly accurate.
+
+Therefore:
+- Do not treat a single GPS reading as a definitive boundary violation.
+- Consider reported GPS accuracy.
+- Apply configurable tolerance and sensible debounce windows.
+- Show a warning before enforcing match penalties.
+- Provide manual resolution when location accuracy is insufficient.
+
+The host should be able to preview what players will experience before starting.
+
+---
+
+# 7. GPS AND LOCATION VISIBILITY ENGINE
+
+Build a real location-sharing engine using browser geolocation with explicit participant permission.
+
+## Location update engine
+
+Possible implementation:
+
+- `navigator.geolocation.watchPosition()`
+- Configurable update cadence and accuracy requirements.
+- Server-side timestamps.
+- Location freshness checks.
+- Connection state monitoring.
+- Reconnection after interruption.
+- Adaptive updates when appropriate to reduce battery usage.
+
+The implementation must distinguish:
+- Current location.
+- Last known location.
+- Approximate location.
+- Stale location.
+- Unavailable location.
+
+## Host-controlled location visibility
+
+The host can configure how teammates and opponents see one another.
+
+Supported rules:
+
+**Visibility modes**
+- No other player locations.
+- Same-team positions only.
+- Periodic opponent pings.
+- Approximate opponent circles.
+- Exact opponent locations during approved reveal windows.
+- A combination of these options.
+
+**Ping intervals**
+- Custom interval in seconds or minutes.
+- Independent visibility settings for each role or team.
+- Match-phase-dependent reveals.
+
+Example:
+
+Seekers receive a location ping of hiders every 5 minutes.
+
+The hiders do not receive seeker positions.
+
+Another game could enable reciprocal periodic pings.
+
+These are optional, transparent match rules, not hidden surveillance.
+
+## Approximate locations
+
+If the host selects approximate locations:
+
+- Reveal a defined geographic area instead of exact coordinates.
+- Show a translucent circle.
+- Use an explicit privacy radius.
+- Avoid exposing the precise location through hidden client data.
+- Distinguish GPS uncertainty from game-created location obfuscation.
+
+Approximation should be performed server-side before broadcasting.
+
+## Critical security requirement
+
+**Never transmit exact hidden opponent coordinates to unauthorized clients and merely hide them visually.**
+
+Permission filtering must occur on the server.
+
+A player inspecting browser network traffic must not gain access to information forbidden by the match rules.
+
+This applies equally to hosts who are participating in the match.
+
+## User consent
+
+Players must see what location-sharing rules apply before accepting the match.
+
+Requirements:
+- Explicit opt-in.
+- Clear visibility rules.
+- Ability to stop sharing or withdraw.
+- No tracking outside active participation.
+- No public location discovery.
+- No invisible location sharing.
+- Automatic stopping when a match finishes or the player leaves.
+- No default storage of movement histories.
+
+Any change that broadens location sharing during a match requires affected players' explicit consent.
+
+---
+
+# 8. CAPTURE, RESCUE, AND MATCH RULES
+
+Design a flexible capture engine.
+
+The host should have several capture methods to choose from.
+
+## Capture methods
+
+**Method A: Mutual confirmation**
+
+A seeker selects the player they tagged.
+
+The tagged player confirms.
+
+The server updates both players' states.
+
+**Method B: QR confirmation**
+
+A player displays a short-lived QR code.
+
+The other player scans it.
+
+The server validates the interaction.
+
+**Method C: Authorized referee**
+
+A neutral referee can validate disputed captures.
+
+GPS proximity can assist with optional validation, but it must not be considered definitive proof because GPS readings can be inaccurate.
+
+## Capture outcomes
+
+The host can select:
+- Convert captured player into a seeker.
+- Eliminate captured player.
+- Send captured player to jail.
+- Temporarily freeze the player.
+- Deduct points.
+- Trigger a configurable game-mode event.
+
+## Jail and rescue
+
+When jail is enabled:
+- The jailed player receives a clear status.
+- Eligible teammates can perform a rescue.
+- Rescue locations are visible only to authorized players.
+- Jail duration is configurable.
+- Rescue cooldowns are configurable.
+- Release behavior is configurable.
+
+## Match states
+
+Use an authoritative state machine.
+
+Suggested states:
+
+`Draft → Lobby → Preflight → Countdown → Hiding Phase (optional) → Active → Paused → Finished → Archived`
+
+Include transitions for:
+- Player leaving.
+- Player rejoining.
+- Host disconnecting.
+- Match expiration.
+- Emergency cancellation.
+- Manual referee intervention.
+
+Avoid duplicated captures, conflicting team changes, or impossible transitions.
+
+---
+
+# 9. CUSTOM GAME MODE BUILDER
+
+This is an advanced feature I strongly want.
+
+The host should be able to build custom modes without programming.
+
+Do not implement it as an unrestricted code editor.
+
+Instead, create a structured rules builder.
+
+## Configurable building blocks
+
+**Teams**
+- Number of teams.
+- Team names.
+- Team colors.
+- Team sizes.
+- Roles.
+
+**Objectives**
+- Survive for a duration.
+- Tag opponents.
+- Capture a flag.
+- Enter a checkpoint.
+- Control a location.
+- Reach a score.
+
+**Events**
+- Match begins.
+- Timer reaches a specified value.
+- Player is captured.
+- A zone changes.
+- An objective is completed.
+- Team reaches a point threshold.
+
+**Actions**
+- Reveal a location ping.
+- Change a player role.
+- Award points.
+- Activate a zone.
+- Start a zone shrink.
+- Show a notification.
+- End the match.
+
+Example custom rule:
+
+"When the match reaches minute 20, start shrinking the main play zone toward the predefined final zone over 5 minutes."
+
+Another:
+
+"When a hider is captured, convert them to the seeker team."
+
+## Custom mode interface
+
+Use simple controls:
+
+**WHEN:** Event
+
+**IF:** Optional condition
+
+**THEN:** Action
+
+Each rule should have an explanation and a preview.
+
+Validate rules to prevent impossible configurations, circular triggers, privilege escalation, or abusive event loops.
+
+Allow saving and reusing custom modes.
+
+Start with a small set of reliable rules, then expand.
+
+---
+
+# 10. COMPREHENSIVE HOST SETTINGS
+
+The host settings page should be one of the best-designed parts of the website.
+
+Organize it into categories.
+
+## General settings
+- Game name.
+- Game mode.
+- Number of players.
+- Minimum ready players.
+- Lobby privacy.
+- Password.
+- Team count.
+- Team sizes.
+
+## Timing
+- Match duration.
+- Countdown.
+- Hiding period.
+- Overtime.
+- Phase durations.
+- Pause behavior.
+
+## Roles and teams
+- Seeker count.
+- Hider count.
+- Random/manual assignment.
+- Team colors.
+- Rebalancing rules.
+- Late-join policy.
+
+## Map and zones
+- Main boundary.
+- Circle/polygon configuration.
+- Safe zones on/off.
+- Jail on/off.
+- Objective zones.
+- Shrinking on/off.
+- Moving zones on/off.
+- Zone phase settings.
+- Boundary warnings.
+
+## Location visibility
+- Tracking activation.
+- Team-specific visibility.
+- Exact or approximate pings.
+- Ping frequency.
+- Accuracy requirements.
+- Reveal windows.
+
+## Capture rules
+- Capture method.
+- Capture consequences.
+- Rescue rules.
+- Respawn rules.
+- Cooldowns.
+- Capture disputes.
+
+## Scoring and winning
+- Score to win.
+- Survival victory.
+- Capture victory.
+- Time-based victory.
+- Tie-breaking behavior.
+
+## Notifications
+- Game starting.
+- Zone shrinking.
+- Objective captured.
+- Player tagged.
+- Match ending.
+- Location unavailable.
+
+## Settings UX requirements
+
+Every setting must have:
+1. A clear name.
+2. A brief explanation of what it does.
+3. A recommended default.
+4. An appropriate control.
+5. Relevant validation.
+6. Dependency handling.
+
+For example:
+
+**Shrink Play Zone**
+
+"When enabled, the playable area becomes smaller during the match according to your configured phases."
+
+Toggle: On / Off
+
+If enabled, reveal the relevant settings.
+
+If disabled, hide irrelevant options.
+
+Use progressive disclosure: show basic settings first, with an Advanced Settings section for deeper customization.
+
+Also include:
+- Reset to defaults.
+- Save as preset.
+- Duplicate preset.
+- Preview rules.
+- Pre-match validation.
+- A readable summary of the configured match.
+
+Do not allow contradictory rules.
+
+Keep fundamental safety and privacy restrictions non-disableable.
+
+---
+
+# 11. USER INTERFACE AND VISUAL DESIGN
+
+The interface should be **minimal, modern, clean, fast, and mobile-first**.
+
+Avoid clutter, exaggerated visual effects, unnecessary gradients, and complicated navigation.
+
+It should feel like a polished modern application.
+
+## Required screens
+
+### Landing page
+- Jm3a Hunt branding.
+- Create Group.
+- Join Group.
+- Sign In.
+- Concise explanation of the experience.
+
+### Dashboard
+- My groups.
+- Active matches.
+- Join match.
+- Create group.
+- Recent match results.
+
+### Group page
+- Group name and icon.
+- Members.
+- Current match.
+- Create match.
+- Saved presets.
+- Match history.
+- Group settings.
+
+### Match lobby
+- Player list.
+- Teams and roles.
+- Ready indicators.
+- Match rules.
+- Map preview.
+- Start game button.
+- Copy invitation link.
+
+### Live match interface
+
+This should be the most polished screen.
+
+Use the map as the main visual element.
+
+On mobile, implement a bottom navigation system with tabs such as:
+
+**Map | Players | Objectives | Events | Rules**
+
+Only show tabs that are relevant to the selected game mode.
+
+#### Map tab
+
+Display:
+- Interactive real-world map.
+- Player's own location.
+- GPS accuracy circle when relevant.
+- Visible teammates.
+- Authorized opponent pings.
+- Main zone boundary.
+- Relevant zone overlays.
+- Objectives.
+- Remaining time.
+- Current game phase.
+- Team or role indicator.
+- Connection status.
+
+Map controls:
+- Street view.
+- Satellite view.
+- Optional hybrid view.
+- Center on my location.
+- Zoom.
+- Follow my location.
+- Toggle zone layers.
+- Optional compass/orientation controls.
+
+Make map controls large enough for mobile touch interaction.
+
+#### Players tab
+
+Show:
+- Player name.
+- Team.
+- Game status.
+- Online/stale/offline indicator.
+- Captured/jailed/eliminated state.
+- Team score when relevant.
+
+Do not expose restricted location information.
+
+#### Objectives tab
+
+Display current goals.
+
+Examples:
+- Survive for 12 more minutes.
+- Capture the opposing flag.
+- Defend Control Point B.
+- Rescue a teammate.
+
+#### Events tab
+
+Show significant match events:
+- Match started.
+- Zone phase activated.
+- Player captured.
+- Flag captured.
+- Jail rescue completed.
+- Match paused.
+- Match finished.
+
+#### Rules tab
+
+Show the active configuration in clear, readable language.
+
+Players should always understand:
+- How to win.
+- What zones are active.
+- What their location-sharing permissions are.
+- How capture works.
+- What happens when eliminated.
+
+### Post-match results
+
+Display:
+- Winning player or team.
+- Match duration.
+- Final score.
+- Capture totals.
+- Objective totals.
+- Notable events.
+- Play Again.
+- Return to Group.
+
+Do not expose private location trails or precise historical positions.
+
+---
+
+# 12. REAL-TIME MULTIPLAYER ENGINE
+
+Multiplayer state synchronization must be reliable.
+
+Requirements:
+- Server-authoritative match state.
+- Real-time player presence.
+- Real-time capture events.
+- Real-time score updates.
+- Real-time zone phase changes.
+- Real-time team updates.
+- Real-time objective state.
+- Reconnection handling.
+- Server timestamps.
+- Idempotent event processing.
+- Duplicate message protection.
+- Permission-controlled event delivery.
+
+Use appropriate real-time technology such as authorized Supabase Realtime channels or another suitable WebSocket-based approach.
+
+Do not trust the client to decide who wins or whether a capture is valid.
+
+When a player reconnects:
+1. Authenticate their match membership.
+2. Retrieve the current authoritative snapshot.
+3. Rejoin permitted real-time channels.
+4. Restore the correct interface.
+5. Resume GPS only if consent remains valid.
+6. Resolve missed events safely.
+
+Keep clients synchronized even after temporary network loss.
+
+---
+
+# 13. DATABASE AND BACKEND DESIGN
+
+Create a well-structured relational database.
+
+Suggested entities:
+
+- `users`
+- `profiles`
+- `groups`
+- `group_members`
+- `group_invitations`
+- `matches`
+- `match_players`
+- `teams`
+- `match_settings`
+- `game_mode_presets`
+- `zones`
+- `zone_phases`
+- `match_events`
+- `captures`
+- `objectives`
+- `scores`
+- `player_presence`
+- `live_locations`
+- `location_consent`
+
+Adjust the schema where appropriate.
+
+Use spatial data types and geographical functions for reliable zone calculations.
+
+### Data protection
+
+- Enable appropriate Row Level Security policies.
+- Validate every sensitive request on the server.
+- Prevent clients from reading location tables directly without authorization.
+- Filter location broadcasts by game visibility rules.
+- Never expose backend service-role secrets in client code.
+- Use high-entropy invitation codes.
+- Rate-limit joining, GPS submissions, and capture actions.
+- Validate input schemas.
+- Protect against common web vulnerabilities.
+- Delete ephemeral location records promptly.
+- Avoid storing raw location history by default.
+
+Do not treat a custom UI role label as sufficient authorization.
+
+### Separation of concerns
+
+Organize the codebase into logical modules:
+
+- Authentication.
+- Groups and membership.
+- Match engine.
+- Game modes.
+- Rules engine.
+- Zone engine.
+- Location engine.
+- Privacy and authorization.
+- Real-time communication.
+- Map rendering.
+- UI components.
+- Match statistics.
+
+Avoid monolithic files containing unrelated functionality.
+
+---
+
+# 14. SAFETY, RELIABILITY, AND EDGE CASES
+
+Because this is a real-world GPS game, accuracy and safety must be considered from the beginning.
+
+## Safe play areas
+
+Hosts must define an approved play area.
+
+Include tools to mark restricted areas and review the complete map before starting.
+
+Do not assume map data automatically identifies every hazard.
+
+Provide clear instructions to play only in appropriate areas with permission, away from traffic, dangerous terrain, and restricted property.
+
+Location objectives must never require players to enter restricted or unsafe locations.
+
+Emergency pauses must be available to every participant.
+
+## GPS errors
+
+Handle:
+- Permission denied.
+- GPS unavailable.
+- Inaccurate location.
+- Sudden GPS jumps.
+- Weak signal.
+- Player outside the zone due to inaccurate readings.
+- Device going offline.
+- Screen locking.
+- Browser being backgrounded.
+- Player rejoining after interruption.
+
+Do not automatically eliminate someone because of a single inaccurate GPS reading.
+
+Use suitable warning thresholds, confidence checks, and manual review options.
+
+## Disconnections
+
+Define configurable disconnection rules.
+
+Possible behavior:
+- Mark the player offline.
+- Stop sharing their location.
+- Preserve their match state temporarily.
+- Allow reconnection.
+- Notify relevant teammates without exposing private information.
+- Allow an authorized referee to resolve a disputed outcome.
+
+## Pause and emergency controls
+
+Support:
+- Match pause.
+- Resume.
+- End match.
+- Player withdrawal.
+- Emergency stop.
+- Clear tracking status.
+
+Emergency stop must immediately disable the game's location collection for the affected player.
+
+## Fairness
+
+Important requirement:
+
+If the host is also playing, administrative status must never grant unauthorized location intelligence.
+
+Gameplay-related administrative actions must be logged and visible.
+
+Sensitive changes during a match should require an appropriate pause and notification.
+
+## Performance
+
+Optimize for:
+- Typical midrange Android phones.
+- iPhones.
+- Limited mobile data.
+- Battery efficiency.
+- Weak cellular networks.
+- Fast UI rendering.
+- 2–15 concurrent players.
+
+Avoid unnecessary location updates and huge real-time payloads.
+
+---
+
+# 15. OPTIONAL FEATURES — EVALUATE BEFORE BUILDING
+
+I prefer realistic physical gameplay over excessive virtual mechanics.
+
+Do not turn Jm3a Hunt into an RPG.
+
+However, consider useful enhancements:
+
+### High-value features
+- Custom game presets.
+- Team color customization.
+- Match event history.
+- Reliable player presence indicators.
+- Match statistics.
+- Role assignment randomizer.
+- Ready checks.
+- Countdown notifications.
+- Detailed rule previews.
+- Saved zone layouts.
+- QR-code invitation sharing.
+- In-game rules explanations.
+- Accessibility options.
+- English interface with Arabic localization support and RTL compatibility.
+
+### Potential later features
+- Simple team communications.
+- Optional neutral referee.
+- Scheduled group matches.
+- Additional custom modes.
+- Private group leaderboards.
+- Replay of non-location match events.
+- Tournament support.
+- Shareable results cards.
+
+### Low-priority or potentially unwanted features
+
+Avoid adding these automatically:
+- In-game currencies.
+- Loot boxes.
+- Complicated inventories.
+- RPG progression.
+- Extensive virtual power-up systems.
+- Paid competitive advantages.
+
+If you believe a virtual mechanic would improve the game, explain why and ask for approval.
+
+---
+
+# 16. TESTING AND QUALITY REQUIREMENTS
+
+Do not consider the project complete merely because pages render correctly.
+
+Test real gameplay scenarios.
+
+At minimum:
+
+**Scenario 1:**
+Two users create a Hide & Seek match, configure roles, start the countdown, and complete a confirmed capture.
+
+**Scenario 2:**
+Five users participate in a match with periodic location reveals, while private locations remain inaccessible to unauthorized players.
+
+**Scenario 3:**
+A shrinking zone progresses through several stages, and all connected players see synchronized boundaries and timers.
+
+**Scenario 4:**
+A player loses their connection, returns, and correctly restores their match state.
+
+**Scenario 5:**
+An administrator who is playing cannot access hidden opponent coordinates.
+
+**Scenario 6:**
+Two teams play Capture the Flag, complete verified flag captures, and receive correct scores.
+
+**Scenario 7:**
+A player has poor GPS accuracy near a zone boundary, and the system handles it without incorrectly eliminating them.
+
+**Scenario 8:**
+A player withdraws consent, and their location immediately stops being published.
+
+Include:
+- Unit tests for game rules.
+- Integration tests for backend behavior.
+- Permission and authorization tests.
+- Zone geometry tests.
+- End-to-end tests for important user flows.
+- Responsive layout tests.
+- Actual iPhone Safari and Android browser testing where devices or testing services are available.
+
+For unavailable physical-device testing, explain what remains unverified rather than claiming it passed.
+
+Provide a development-only simulated GPS mode for testing multiple players without physically traveling. Keep it disabled in real matches.
+
+---
+
+# 17. DEVELOPMENT PHASES
+
+I want actual working progress, not a beautiful frontend with a nonexistent backend.
+
+Build the application in manageable phases.
+
+## Phase 1 — Foundation
+
+- Project setup.
+- Recommended architecture.
+- Authentication and/or secure guest participation.
+- Database.
+- Design system.
+- Landing page.
+- Dashboard.
+- Groups.
+- Invitation links.
+- Basic lobby functionality.
+
+## Phase 2 — Maps and GPS
+
+- Live map.
+- User location.
+- Street/satellite switching.
+- GPS permissions.
+- Connection state.
+- Basic zone creation.
+- Server-authorized location updates.
+
+## Phase 3 — Core Hide & Seek
+
+- Role assignment.
+- Countdown.
+- Hiding period.
+- Real-time match state.
+- Configurable GPS pings.
+- Confirmed capture.
+- Basic win conditions.
+- Results screen.
+
+At this point, Jm3a Hunt should already be playable.
+
+## Phase 4 — Advanced Zone Engine
+
+- Polygon editor.
+- Zone types.
+- Multiple shrinking phases.
+- Moving zones.
+- Dynamic warnings.
+- Saved presets.
+- Accuracy-aware boundary behavior.
+
+## Phase 5 — Additional Modes
+
+- Capture the Flag.
+- Zone Control.
+- Shrinking-zone survival.
+- Infection mode.
+- Configurable scoring and capture outcomes.
+
+## Phase 6 — Customization
+
+- Advanced host configuration.
+- Preset management.
+- Custom mode builder.
+- Rule dependencies.
+- Rules preview.
+
+## Phase 7 — Product Polish
+
+- PWA installation.
+- Notifications where supported.
+- Mobile responsiveness.
+- Accessibility.
+- Performance optimization.
+- Security hardening.
+- Real-device testing.
+- Deployment documentation.
+
+Every phase must leave the existing product functional.
+
+Do not invent screenshots, backend behavior, tests, or completed integrations.
+
+---
+
+# 18. EXPECTED DELIVERABLES
+
+Produce:
+
+1. A concise architecture plan and rationale.
+2. A working frontend and backend.
+3. Database schema and migrations.
+4. Reusable UI components.
+5. An authoritative multiplayer game engine.
+6. A functional map and zone system.
+7. Configurable game modes.
+8. A tested location-sharing permission model.
+9. A PWA configuration.
+10. Setup and deployment instructions.
+11. An `.env.example` file without secrets.
+12. A README.
+13. A clear checklist of completed and remaining features.
+
+When external services require keys or configuration, explain the steps.
+
+Never fabricate credentials or silently substitute fake implementations.
+
+Identify which features are fully implemented, partially implemented, or planned.
+
+---
+
+## 19. WORKING RELATIONSHIP AND AUTONOMY
+
+You have considerable freedom in how you approach this project.
+
+Treat this specification as a detailed description of what I want to achieve rather than an exact implementation script.
+
+You can independently determine how best to implement the requested features, organize the codebase, and structure the development process.
+
+You are also free to disagree with individual implementation suggestions if you believe a different approach would work better.
+
+You may explain your reasoning or propose alternatives whenever appropriate, but you do not have to repeatedly ask for approval for ordinary development decisions.
+
+For major changes to the product's intended functionality, discuss them with me first.
+
+Using additional tools, conducting research, proposing features, or asking questions is entirely optional and should happen only when useful.
+
+Keep the application's central goals intact:
+
+- A mobile-first website/PWA.
+- Private multiplayer groups.
+- Extensive game customization.
+- Multiple real-world game modes.
+- Advanced GPS and zone mechanics.
+- Reliable real-time synchronization.
+- Fair, consent-based location sharing.
+- A minimal and responsive interface.
+- A genuinely functional application.
+
+**The freedom described here is intended to help you work more effectively, not to create additional work.**
+
+---
+
+## 20. GETTING STARTED
+
+Your main task is to design and build Jm3a Hunt using the full specification.
+
+You have the freedom to choose the most effective development workflow.
+
+You can begin with architecture planning, project setup, database design, interface development, or any other logical starting point.
+
+If you believe additional planning, research, clarification, or discussion would improve the outcome, you are welcome to do so.
+
+You are **not required** to:
+- Generate a fixed number of improvement suggestions.
+- Ask questions before beginning.
+- Perform unnecessary competitive research.
+- Present alternatives to every technical decision.
+- Write extensive planning documents before coding.
+- Challenge specifications that are already reasonable.
+
+You may carry out any of these activities when they are genuinely beneficial.
+
+Prioritize actual implementation, sound engineering, usability, and a working product.
+
+**Your ultimate objective is to turn Jm3a Hunt into a complete, customizable, reliable, and enjoyable real-world multiplayer gaming website.**
