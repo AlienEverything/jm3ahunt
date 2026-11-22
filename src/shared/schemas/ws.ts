@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { MatchEvent, MatchView } from "../types";
+import type { Issue, MatchEvent, MatchView } from "../types";
 import { RoleSchema } from "./zones";
 
 export const MAX_WS_MESSAGE_BYTES = 8 * 1024;
@@ -19,6 +19,9 @@ const HostOpSchema = z.discriminatedUnion("op", [
   z.strictObject({ t: z.literal("host"), opId: OpId, op: z.literal("setRole"), userId: Id, role: RoleSchema }),
   z.strictObject({ t: z.literal("host"), opId: OpId, op: z.literal("kick"), userId: Id }),
   z.strictObject({ t: z.literal("host"), opId: OpId, op: z.literal("resolveCapture"), captureId: Id, decision: z.enum(["confirm", "reject"]) }),
+  /** Dev-only (simulation matches when ALLOW_SIM_GPS): server-side bot players, draft/lobby only. */
+  z.strictObject({ t: z.literal("host"), opId: OpId, op: z.literal("addBot"), count: z.number().int().min(1).max(10).optional() }),
+  z.strictObject({ t: z.literal("host"), opId: OpId, op: z.literal("removeBot"), userId: Id }),
 ]);
 
 const ConsentSchema = z.discriminatedUnion("accept", [
@@ -84,11 +87,20 @@ export const ServerMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("view"), v: z.custom<MatchView>(objectLike) }),
   z.object({ t: z.literal("event"), e: z.custom<MatchEvent>(objectLike) }),
   z.discriminatedUnion("kind", [
-    z.object({ t: z.literal("prompt"), kind: z.literal("tagRequest"), captureId: z.string(), seekerName: z.string(), expiresAt: z.number() }),
+    /** `hint: "far"`: both fixes fresh and farther apart than the tag distance (GPS is never proof). Only the hider sees it. */
+    z.object({ t: z.literal("prompt"), kind: z.literal("tagRequest"), captureId: z.string(), seekerName: z.string(), expiresAt: z.number(), hint: z.literal("far").optional() }),
     z.object({ t: z.literal("prompt"), kind: z.literal("rescueRequest"), rescuerId: z.string(), rescuerName: z.string(), expiresAt: z.number() }),
   ]),
   z.object({ t: z.literal("qr"), token: z.string(), code: z.string().regex(/^\d{6}$/), expiresAt: z.number() }),
-  z.object({ t: z.literal("ack"), opId: z.string(), ok: z.boolean(), error: z.string().optional(), key: z.string().optional() }),
+  /** `issues`: preflight failures when `start` is refused (the match returns to lobby). */
+  z.object({
+    t: z.literal("ack"),
+    opId: z.string(),
+    ok: z.boolean(),
+    error: z.string().optional(),
+    key: z.string().optional(),
+    issues: z.array(z.custom<Issue>(objectLike)).optional(),
+  }),
   z.object({ t: z.literal("error"), code: z.string(), message: z.string() }),
   z.object({ t: z.literal("hbAck"), serverNow: z.number() }),
 ]);

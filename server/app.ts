@@ -3,6 +3,7 @@ import type { AddressInfo } from "node:net";
 import type { Duplex } from "node:stream";
 import { getRequestListener } from "@hono/node-server";
 import { loadConfig, type AppConfig } from "./config";
+import { createContext, type AppContext } from "./context";
 import { createApi } from "./http";
 import { createWsGateway } from "./ws";
 
@@ -10,22 +11,29 @@ export interface AppServerOptions {
   /** false: API + WS only (integration tests). */
   withNext: boolean;
   config?: AppConfig;
+  /** Game clock (epoch ms). Tests inject a controllable one. */
+  now?: () => number;
+  /** Run the 1 s engine tick (default true). Tests turn it off and call `ctx.registry.tick()`. */
+  autoTick?: boolean;
 }
 
 export interface AppServer {
   server: Server;
   config: AppConfig;
+  ctx: AppContext;
   listen(port?: number): Promise<number>;
+  /** Snapshots every live match, then closes sockets, HTTP and the DB. */
   close(): Promise<void>;
 }
 
 const pathOf = (req: IncomingMessage) => (req.url ?? "/").split("?")[0];
 
-export async function createAppServer({ withNext, config = loadConfig() }: AppServerOptions): Promise<AppServer> {
-  const api = createApi(config);
+export async function createAppServer({ withNext, config = loadConfig(), now = Date.now, autoTick = true }: AppServerOptions): Promise<AppServer> {
+  const ctx = await createContext(config, now);
+  const api = createApi(ctx);
   // overrideGlobalObjects:false keeps Hono from replacing global Request/Response, which Next relies on.
   const apiListener = getRequestListener(api.fetch, { overrideGlobalObjects: false });
-  const wss = createWsGateway();
+  const gateway = createWsGateway(ctx);
 
   let nextHandle: ((req: IncomingMessage, res: import("node:http").ServerResponse) => Promise<void>) | null = null;
   let nextUpgrade: ((req: IncomingMessage, socket: Duplex, head: Buffer) => Promise<void>) | null = null;
@@ -56,7 +64,7 @@ export async function createAppServer({ withNext, config = loadConfig() }: AppSe
 
   server.on("upgrade", (req, socket, head) => {
     if (pathOf(req) === "/ws") {
-      wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
+      void gateway.upgrade(req, socket, head);
       return;
     }
     // Everything else (Next HMR at /_next/hmr, etc.) goes to Next.
@@ -67,20 +75,31 @@ export async function createAppServer({ withNext, config = loadConfig() }: AppSe
     socket.destroy();
   });
 
+  if (autoTick) ctx.registry.start();
+
   return {
     server,
     config,
+    ctx,
     listen(port = config.port) {
       return new Promise((resolve, reject) => {
         server.once("error", reject);
-        server.listen(port, () => resolve((server.address() as AddressInfo).port));
+        // Render (and most hosts) need 0.0.0.0; locally the default dual-stack bind also serves ::1.
+        const onListen = () => resolve((server.address() as AddressInfo).port);
+        if (config.isProduction) server.listen(port, "0.0.0.0", onListen);
+        else server.listen(port, onListen);
       });
     },
     async close() {
-      for (const client of wss.clients) client.terminate();
-      wss.close();
-      await new Promise<void>((resolve) => server.close(() => resolve()));
+      ctx.registry.stop();
+      await ctx.registry.shutdown();
+      await gateway.close();
+      await new Promise<void>((resolve) => {
+        server.close(() => resolve());
+        server.closeAllConnections();
+      });
       await nextClose?.();
+      await ctx.close();
     },
   };
 }
