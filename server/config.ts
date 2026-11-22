@@ -1,4 +1,6 @@
 import { randomBytes } from "node:crypto";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { z } from "zod";
 
 const boolFromEnv = z
@@ -30,6 +32,32 @@ export interface AppConfig {
   allowSimGps: boolean;
 }
 
+type SecretName = "SESSION_SECRET" | "TAG_TOKEN_SECRET";
+export const DEV_SECRETS_FILE = "data/dev-secrets.json";
+
+/**
+ * Development only: generated secrets are kept in data/dev-secrets.json (gitignored) so a
+ * `tsx watch` restart does not invalidate tag tokens or anything else signed with them.
+ */
+export function devSecret(name: SecretName, file = DEV_SECRETS_FILE): string {
+  let stored: Partial<Record<SecretName, string>> = {};
+  try {
+    stored = JSON.parse(readFileSync(file, "utf8")) as typeof stored;
+  } catch {
+    // first run or unreadable: generate below
+  }
+  const existing = stored[name];
+  if (typeof existing === "string" && existing.length >= 32) return existing;
+  const value = randomBytes(32).toString("base64url");
+  try {
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify({ ...stored, [name]: value }, null, 2));
+  } catch {
+    console.warn(`[config] could not write ${file}; ${name} is random for this process.`);
+  }
+  return value;
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const parsed = EnvSchema.safeParse(env);
   if (!parsed.success) {
@@ -42,6 +70,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     const value = e[name];
     if (value) return value;
     if (isProduction) throw new Error(`${name} is required in production (at least 32 characters).`);
+    if (e.NODE_ENV === "development") return devSecret(name);
     console.warn(`[config] ${name} not set; using a random value for this process (anything signed with it stops working after a restart).`);
     return randomBytes(32).toString("base64url");
   };

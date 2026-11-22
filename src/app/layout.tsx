@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { ServiceWorker } from "@/components/layout/ServiceWorker";
 import { Toaster } from "@/components/ui/sonner";
 import { dir, locale, t } from "@/i18n";
 import { THEME_INIT_SCRIPT } from "@/lib/theme-script";
@@ -20,6 +21,11 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: { default: t("app.name"), template: `%s · ${t("app.name")}` },
   description: t("app.tagline"),
+  applicationName: t("app.name"),
+  appleWebApp: { capable: true, title: "Jm3a Hunt", statusBarStyle: "default" },
+  formatDetection: { telephone: false },
+  // Next emits only `mobile-web-app-capable`; older iOS Safari still reads the apple- name.
+  other: { "apple-mobile-web-app-capable": "yes" },
 };
 
 export const viewport: Viewport = {
@@ -43,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex min-h-dvh flex-col">
         {children}
         <Toaster position="top-center" />
+        <ServiceWorker />
       </body>
     </html>
   );

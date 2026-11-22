@@ -1,0 +1,25 @@
+# Render Blueprint: one free web service (Next + API + WebSocket in one Node process).
+# Pair it with a free Turso database: Render's free disk is wiped on every deploy and restart.
+services:
+  - type: web
+    name: jm3a-hunt
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: APP_ORIGIN
+        sync: false # e.g. https://jm3a-hunt.onrender.com
+      - key: DATABASE_URL
+        sync: false # libsql://<db>-<org>.turso.io
+      - key: DATABASE_AUTH_TOKEN
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: TAG_TOKEN_SECRET
+        generateValue: true
+      - key: NEXT_PUBLIC_MAPTILER_KEY
+        sync: false # optional; needed at build time for satellite/hybrid

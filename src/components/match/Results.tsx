@@ -16,10 +16,18 @@ import { formatClock } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { RoleChip } from "./PlayerRow";
 
-const flatParams = (p: MatchResultsDto["highlights"][number]["payload"]): MessageParams =>
-  Object.fromEntries(
+/** Payload params, with player ids swapped for names (`{name}`, `{seeker}`, `{hider}`, `{rescuer}`). */
+const flatParams = (p: MatchResultsDto["highlights"][number]["payload"], names: Map<string, string>): MessageParams => {
+  const out: MessageParams = Object.fromEntries(
     Object.entries(p).flatMap(([k, v]) => (typeof v === "string" || typeof v === "number" ? [[k, v]] : Array.isArray(v) ? [[k, v.join(", ")]] : [])),
   );
+  const ids: Record<string, string> = { name: "userId", seeker: "seekerId", hider: "hiderId", rescuer: "rescuerId" };
+  for (const [param, key] of Object.entries(ids)) {
+    const id = p[key];
+    if (typeof id === "string") out[param] = names.get(id) ?? "?";
+  }
+  return out;
+};
 
 export function Results({ info }: { info: MatchInfoDto }) {
   const router = useRouter();
@@ -126,7 +134,7 @@ export function Results({ info }: { info: MatchInfoDto }) {
               return (
                 <li key={i} className="flex gap-3">
                   <span className="w-14 shrink-0 font-mono text-xs text-muted-foreground tabular">{r.match.startedAt ? formatClock(Math.max(0, h.at - r.match.startedAt)) : ""}</span>
-                  <span>{hasMessage(key) ? tm({ key, params: flatParams(h.payload) }) : h.type}</span>
+                  <span>{hasMessage(key) ? tm({ key, params: flatParams(h.payload, new Map(r.players.map((x) => [x.userId, x.displayName]))) }) : h.type}</span>
                 </li>
               );
             })}

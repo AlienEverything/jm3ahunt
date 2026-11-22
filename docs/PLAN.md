@@ -4,10 +4,10 @@ Spec: `docs/SPEC.md`. Four worker tasks (user cap: at most 4 subagents). Each ta
 
 | # | Task | Tier | After | Status |
 |---|---|---|---|---|
-| 1 | Scaffold + shared game engine | careful | — | pending |
-| 2 | Server, database, realtime engine | careful | 1 | pending |
-| 3 | App screens and design system | careful | 1 | pending |
-| 4 | Map, live match, zone editor, PWA | careful | 2, 3 | pending |
+| 1 | Scaffold + shared game engine | careful | — | done |
+| 2 | Server, database, realtime engine | careful | 1 | done |
+| 3 | App screens and design system | careful | 1 | done |
+| 4 | Map, live match, zone editor, PWA | careful | 2, 3 | done |
 
 ## 1. Scaffold + shared game engine
 

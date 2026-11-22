@@ -1,4 +1,8 @@
+import { existsSync } from "node:fs";
 import { createAppServer } from "./app";
+
+// Local .env (gitignored) for server-side settings such as ALLOW_SIM_GPS; real env vars win.
+if (existsSync(".env")) process.loadEnvFile(".env");
 
 async function main() {
   const app = await createAppServer({ withNext: true });

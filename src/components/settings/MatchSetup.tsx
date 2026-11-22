@@ -10,6 +10,7 @@ import {
   getBuiltInPreset,
   hasErrors,
   validateSettings,
+  validateZones,
   withDefaults,
   type MatchInfoDto,
   type PresetDto,
@@ -75,7 +76,9 @@ export function MatchSetup({ groupId, presets, initialPresetId = null, initialZo
   const zoneIssues = issues.filter((i) => i.path.startsWith("zones"));
   // Zone-dependent errors (e.g. jail zone missing) are shown but only block the start (server preflight), not saving.
   const blocking = useMemo(() => validateSettings(settings, { allowSimulation: editMatch?.simulationAllowed ?? false }), [settings, editMatch]);
-  const blocked = hasErrors(blocking) || !name.trim();
+  // A drawn layout must be valid to save; an empty one is allowed (the host can draw it in the lobby).
+  const zonesInvalid = zones.length > 0 && hasErrors(validateZones(zones));
+  const blocked = hasErrors(blocking) || zonesInvalid || !name.trim();
 
   function choosePreset(id: string) {
     const s = presetSettings(id, presets);
@@ -209,7 +212,7 @@ export function MatchSetup({ groupId, presets, initialPresetId = null, initialZo
           </Section>
 
           <Section title={t("setup.playArea")}>
-            <ZoneEditorSlot zones={zones} onChange={setZones} settings={settings} issues={zoneIssues} presetId={presetId ?? undefined} />
+            <ZoneEditorSlot zones={zones} onChange={setZones} settings={settings} issues={zoneIssues} presetId={presetId ?? undefined} groupId={groupId} presets={presets} />
           </Section>
         </div>
 

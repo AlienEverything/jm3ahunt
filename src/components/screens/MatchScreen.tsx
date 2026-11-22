@@ -43,7 +43,8 @@ export function MatchScreen() {
   else if (match.error && !view) body = <ErrorState error={new ApiError(0, match.error.code, match.error.message)} />;
   else if (i && !view) body = <LoadingState rows={4} />;
   else if (i && view && SETUP.includes(view.state)) body = <Lobby view={view} info={i} match={match} />;
-  else if (view) body = <LiveMatchSlot view={view} match={match} />;
+  // Live match is map-first and full-screen: no top bar or content column.
+  else if (view) return <LiveMatchSlot view={view} match={match} />;
 
   return (
     <>

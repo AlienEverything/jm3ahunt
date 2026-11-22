@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CircleCheck, CircleDashed, Info, MoreHorizontal, Pencil, Shuffle, UserX } from "lucide-react";
+import { Bot, CircleCheck, CircleDashed, Info, MapPinned, MoreHorizontal, Pencil, Shuffle, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { hasErrors, setAt, validateSettings, type GroupDetailDto, type MatchInfoDto, type MatchView, type Role, type ViewPlayer } from "@/shared";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -32,10 +32,10 @@ function shareLine(view: MatchView) {
 }
 
 /** Client-side reasons the host cannot start yet; the server re-checks in preflight. */
-function startBlockers(view: MatchView): string[] {
+function startBlockers(view: MatchView, allowSimulation: boolean): string[] {
   const s = view.settings;
   const out: string[] = [];
-  const issues = validateSettings(s, { zones: view.zones, playerCount: view.players.length });
+  const issues = validateSettings(s, { zones: view.zones, playerCount: view.players.length, allowSimulation });
   if (hasErrors(issues)) out.push(...issues.filter((i) => i.severity === "error").map((i) => tm(i)));
   const notReady = view.players.filter((p) => !p.ready).length;
   if (notReady > 0) out.push(t("lobby.block.notReady", { count: notReady }));
@@ -61,8 +61,11 @@ export function Lobby({ view, info, match }: { view: MatchView; info: MatchInfoD
   const shareUrl = typeof window === "undefined" ? "" : group.data?.inviteToken ? `${window.location.origin}/invite/${group.data.inviteToken}` : `${window.location.origin}/matches/${view.matchId}`;
 
   const consentOk = me?.consentValid ?? false;
-  const canReady = consentOk && gps.ok;
-  const blockers = view.state === "lobby" ? startBlockers(view) : [];
+  const sim = view.settings.simulation;
+  // Test matches use tapped positions, so a real GPS fix is not required.
+  const canReady = consentOk && (gps.ok || sim);
+  const botsAllowed = host && sim && info.simulationAllowed && (view.state === "lobby" || view.state === "draft");
+  const blockers = view.state === "lobby" ? startBlockers(view, info.simulationAllowed) : [];
   const notReady = view.players.filter((p) => !p.ready).length;
 
   async function hostOp(key: string, msg: Parameters<UseMatch["send"]>[0]) {
@@ -125,10 +128,17 @@ export function Lobby({ view, info, match }: { view: MatchView; info: MatchInfoD
           <MoreHorizontal aria-hidden />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-52">
-          <DropdownMenuItem variant="destructive" onClick={() => setKicking(p)}>
-            <UserX aria-hidden />
-            {t("lobby.kick")}
-          </DropdownMenuItem>
+          {p.userId.startsWith("bot_") ? (
+            <DropdownMenuItem variant="destructive" onClick={() => hostOp(`bot-${p.userId}`, { t: "host", op: "removeBot", userId: p.userId })}>
+              <Bot aria-hidden />
+              {t("lobby.sim.removeBot")}
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem variant="destructive" onClick={() => setKicking(p)}>
+              <UserX aria-hidden />
+              {t("lobby.kick")}
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     ) : null;
@@ -142,6 +152,12 @@ export function Lobby({ view, info, match }: { view: MatchView; info: MatchInfoD
         </div>
         <p className="text-sm text-muted-foreground">{shortRules(view.settings)}</p>
       </header>
+
+      {sim && (
+        <p role="note" className="rounded-2xl bg-warning px-4 py-2 text-center text-sm font-bold tracking-wide text-black uppercase">
+          {t("lobby.sim.banner")}
+        </p>
+      )}
 
       {view.state === "draft" && (
         <div role="note" className="flex flex-col gap-3 rounded-2xl border border-dashed p-4 sm:flex-row sm:items-center">
@@ -230,6 +246,16 @@ export function Lobby({ view, info, match }: { view: MatchView; info: MatchInfoD
                     <Pencil aria-hidden />
                     {t("lobby.editRules")}
                   </Button>
+                  <Button variant="outline" render={<Link href={`/matches/${view.matchId}/edit`} />} nativeButton={false}>
+                    <MapPinned aria-hidden />
+                    {t("lobby.editPlayArea")}
+                  </Button>
+                  {botsAllowed && (
+                    <Button variant="outline" onClick={() => hostOp("addBot", { t: "host", op: "addBot", count: 1 })} disabled={busy === "addBot"}>
+                      <Bot aria-hidden />
+                      {t("lobby.sim.addBot")}
+                    </Button>
+                  )}
                 </div>
                 {view.state === "lobby" && blockers.length > 0 && (
                   <div className="flex flex-col gap-1">
